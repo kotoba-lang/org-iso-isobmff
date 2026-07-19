@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   test:
-    name: clojure -M:test (JDK ${{ matrix.java }})
+    name: clojure and Kotoba (JDK ${{ matrix.java }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -26,7 +26,7 @@ jobs:
           java-version: ${{ matrix.java }}
 
       - name: Setup Clojure CLI
-        uses: DeLaGuardo/setup-clojure@13.1
+        uses: DeLaGuardo/setup-clojure@13.4
         with:
           cli: latest
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -43,3 +43,20 @@ jobs:
 
       - name: Run tests
         run: clojure -M:test
+
+      - name: Run lint
+        run: clojure -M:lint
+
+      - name: Compile bounded ISO-BMFF parser
+        run: |
+          mkdir -p target/kotoba
+          clojure -M:kotoba compile test/isobmff/bounded_box_conformance.kotoba --source-path src \
+            --target js-browser --output target/kotoba/isobmff.mjs
+          clojure -M:kotoba compile test/isobmff/bounded_box_conformance.kotoba --source-path src \
+            --target wasm32-browser --output target/kotoba/isobmff.wasm
+      - name: Execute real fixture on Web and typed Wasm
+        run: |
+          compiler_src="$(clojure -Spath -M:kotoba | tr ':' '\n' | grep '/compiler/' | head -1)"
+          node scripts/verify-kotoba.mjs target/kotoba/isobmff.mjs \
+            target/kotoba/isobmff.wasm "$(dirname "$compiler_src")/runtime/browser-host.mjs" \
+            resources/isobmff/fixtures/av_sample.mp4
