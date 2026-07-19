@@ -1,5 +1,17 @@
 # kotoba-lang/org-iso-isobmff
 
+The open CLJC implementation remains the semantic oracle for recursive box
+trees, AVIF/HEIC metadata, demux, mux, and remux. The capability-free bounded
+Kotoba profile in `src/isobmff/bounded_box.kotoba` validates top-level ISO-BMFF
+box framing for inputs up to 16,384 bytes, including normal, EOF-sized, and
+64-bit large-size headers. It rejects truncated and invalid-byte headers,
+undersized or out-of-range boxes, unsupported sizes above the bounded input
+domain, more than 32 top-level boxes, and missing `ftyp`/`moov`/`mdat` boxes.
+
+The committed 12,171-byte H.264 MP4 fixture runs through the generated Web
+artifact and the sealed typed Wasm host-value factory. Nested box semantics,
+sample tables, media decode, and mutation remain explicitly in CLJC.
+
 Zero-dep portable `.cljc` ISO Base Media File Format reader/writer
 (ISO/IEC 14496-12) — the box-tree container behind MP4/MOV video and
 AVIF/HEIC still images. Named `org-iso-isobmff` (ISO/IEC-numbered spec,
