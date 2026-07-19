@@ -15,10 +15,10 @@
           :truncated-header false :out-of-range-box false
           :oversized-input false :unbounded-traversal false
           :silent-domain-narrowing false}
- :compiler {:pr "https://github.com/kotoba-lang/compiler/pull/114"
-            :commit "3579cfdb4975458eb0f434052564cd523d8a03da"
-            :kotoba-script-pr "https://github.com/kotoba-lang/kotoba-script/pull/26"
-            :kotoba-script-commit "c636ea3ac1208f7632a6995f32f0680c28cabb48"}
+ :compiler {:pr "https://github.com/kotoba-lang/compiler/pull/115"
+            :commit "b3a29de4d0e525e6bacd4b66dafc755a2f68536e"
+            :kotoba-script-pr "https://github.com/kotoba-lang/kotoba-script/pull/27"
+            :kotoba-script-commit "777d122019b2baa192c2b2ae1ea974c541338688"}
  :verification
  {:legacy {:tests 8 :assertions 80 :failures 0 :errors 0}
   :fixture {:bytes 12171
@@ -27,8 +27,8 @@
             :media-start 1692 :media-size 10479}
   :project-digest "671b33fc637754fd53d618e77f7f85692082f749d336a89d0b84e6ffdb0889e3"
   :web {:main 42 :fixture-check 42
-        :artifact-sha256 "16b07581fce8ac4ac9ca34700ead6f8735c851da9464d5a8c7546e04abb7b4e1"}
+        :artifact-sha256 "54a0c2e70c0e100ee043b9c52e10176b0fa8b57d3686df86830bf6491369fd13"}
   :wasm {:main 42 :fixture-check 42
-         :artifact-sha256 "c87b8cc69c2c5ea3ad0a4bb0c7effe092245ad5c1b6637aa0d0c5e2554340f73"}
+         :artifact-sha256 "2c0f2b88f0cdb81c14dcaf500028e15203f02e0ef5cbcfae2905c206afd562d6"}
   :required-capabilities [] :hosted-ci :passed}
  :cutover {:bounded-profile-authorized true :generic-cljc-retained true}}

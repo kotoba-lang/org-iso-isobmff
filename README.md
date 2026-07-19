@@ -8,9 +8,17 @@ box framing for inputs up to 16,384 bytes, including normal, EOF-sized, and
 undersized or out-of-range boxes, unsupported sizes above the bounded input
 domain, more than 32 top-level boxes, and missing `ftyp`/`moov`/`mdat` boxes.
 
-The committed 12,171-byte H.264 MP4 fixture runs through the generated Web
-artifact and the sealed typed Wasm host-value factory. Nested box semantics,
-sample tables, media decode, and mutation remain explicitly in CLJC.
+The committed 12,171-byte H.264 MP4 fixture runs through generated Web and
+sealed typed Wasm artifacts. The cross-repository Kotoba graph in
+`src/isobmff/avc_sps.kotoba` follows the bounded first `trak` path
+`moov/trak/mdia/minf/stbl/stsd/avc1/avcC`, extracts one SPS (at most 128
+bytes), then calls `h264.sps/parse-ebsp-baseline` directly from the pinned
+`org-iso-h264` dependency. The real fixture proves baseline profile 66 at
+64x48 on both targets. It rejects malformed nested sizes, invalid bytes,
+unsupported AVC configuration versions/counts, truncated or oversized SPS,
+and inputs above 16,384 bytes without host capabilities. General multi-track
+selection, sample tables, media decode, and mutation remain explicitly in
+CLJC.
 
 Zero-dep portable `.cljc` ISO Base Media File Format reader/writer
 (ISO/IEC 14496-12) — the box-tree container behind MP4/MOV video and
