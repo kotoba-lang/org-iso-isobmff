@@ -61,10 +61,15 @@ jobs:
           clojure -M:kotoba compile test/isobmff/avc_sps_conformance.kotoba \
             --source-path src --source-path "$h264_src" \
             --target wasm32-browser --output target/kotoba/avc-sps.wasm
+          clojure -M:kotoba compile test/isobmff/image_meta_conformance.kotoba \
+            --source-path src --target js-browser --output target/kotoba/image-meta.mjs
+          clojure -M:kotoba compile test/isobmff/image_meta_conformance.kotoba \
+            --source-path src --target wasm32-browser --output target/kotoba/image-meta.wasm
       - name: Execute real fixture on Web and typed Wasm
         run: |
           compiler_src="$(clojure -Spath -M:kotoba | tr ':' '\n' | grep '/compiler/' | head -1)"
           node scripts/verify-kotoba.mjs target/kotoba/isobmff.mjs \
             target/kotoba/isobmff.wasm target/kotoba/avc-sps.mjs target/kotoba/avc-sps.wasm \
+            target/kotoba/image-meta.mjs target/kotoba/image-meta.wasm \
             "$(dirname "$compiler_src")/runtime/browser-host.mjs" \
             resources/isobmff/fixtures/av_sample.mp4

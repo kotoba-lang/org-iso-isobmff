@@ -20,6 +20,16 @@ and inputs above 16,384 bytes without host capabilities. General multi-track
 selection, sample tables, media decode, and mutation remain explicitly in
 CLJC.
 
+`src/isobmff/image_meta.kotoba` adds a bounded still-image metadata profile
+over `ftyp + meta/iprp/ipco/ispe`. It returns the exact four-byte major brand
+as an unsigned-u32 value held in Kotoba i64, plus the full positive-u32 width
+and height domain. This avoids narrowing arbitrary brands to a hard-coded
+AVIF/HEIC enum and avoids delegating dynamic string construction to JavaScript.
+The parser rejects missing or malformed paths, non-byte payloads, nonzero
+`ispe` version/flags, zero dimensions, nested range errors, and inputs above
+16,384 bytes. The general recursive box listing and optional-field result
+shape remain in the CLJC oracle.
+
 Zero-dep portable `.cljc` ISO Base Media File Format reader/writer
 (ISO/IEC 14496-12) — the box-tree container behind MP4/MOV video and
 AVIF/HEIC still images. Named `org-iso-isobmff` (ISO/IEC-numbered spec,
