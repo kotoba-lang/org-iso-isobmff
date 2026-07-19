@@ -50,13 +50,21 @@ jobs:
       - name: Compile bounded ISO-BMFF parser
         run: |
           mkdir -p target/kotoba
+          h264_src="$(clojure -Spath | tr ':' '\n' | grep '/org-iso-h264/' | head -1)"
           clojure -M:kotoba compile test/isobmff/bounded_box_conformance.kotoba --source-path src \
             --target js-browser --output target/kotoba/isobmff.mjs
           clojure -M:kotoba compile test/isobmff/bounded_box_conformance.kotoba --source-path src \
             --target wasm32-browser --output target/kotoba/isobmff.wasm
+          clojure -M:kotoba compile test/isobmff/avc_sps_conformance.kotoba \
+            --source-path src --source-path "$h264_src" \
+            --target js-browser --output target/kotoba/avc-sps.mjs
+          clojure -M:kotoba compile test/isobmff/avc_sps_conformance.kotoba \
+            --source-path src --source-path "$h264_src" \
+            --target wasm32-browser --output target/kotoba/avc-sps.wasm
       - name: Execute real fixture on Web and typed Wasm
         run: |
           compiler_src="$(clojure -Spath -M:kotoba | tr ':' '\n' | grep '/compiler/' | head -1)"
           node scripts/verify-kotoba.mjs target/kotoba/isobmff.mjs \
-            target/kotoba/isobmff.wasm "$(dirname "$compiler_src")/runtime/browser-host.mjs" \
+            target/kotoba/isobmff.wasm target/kotoba/avc-sps.mjs target/kotoba/avc-sps.wasm \
+            "$(dirname "$compiler_src")/runtime/browser-host.mjs" \
             resources/isobmff/fixtures/av_sample.mp4
