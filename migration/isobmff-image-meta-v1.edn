@@ -50,7 +50,7 @@
   :wasm {:main 42 :fixture-check 42 :metadata-check 42 :reject-check 42
          :artifact-sha256 "ec590a317b91f09228268501536a777e9c40806e550f428da00dfb3d9d3a33d3"}
   :required-capabilities []
-  :hosted-ci :pending}
+  :hosted-ci :passed}
  :cutover
  {:bounded-profile-authorized true
   :generic-cljc-retained true}}
