@@ -32,11 +32,18 @@
                 (b/wu32 0x00010000) (b/wu16 0x0100) (b/wu16 0) (b/wu32 0) (b/wu32 0)
                 identity-matrix (repeat 24 0) (b/wu32 next-track))))
 
-(defn- tkhd [track-id duration]
+(defn- tkhd
+  "`tkhd`. `width`/`height` are in PIXELS and written to the box's 16.16
+   fixed-point fields; 0 means unset, which is what every caller before
+   `avc-track` passed and what a remux still passes (the R0 note in the
+   namespace docstring). A video track authored from scratch must set them —
+   a player given 0x0 has nothing else to size the picture from."
+  [track-id duration width height]
   (fbox "tkhd" 0 7
         (concat (b/wu32 0) (b/wu32 0) (b/wu32 track-id) (b/wu32 0) (b/wu32 duration)
                 (b/wu32 0) (b/wu32 0) (b/wu16 0) (b/wu16 0) (b/wu16 0) (b/wu16 0)
-                identity-matrix (b/wu32 0) (b/wu32 0))))
+                identity-matrix
+                (b/wu16 width) (b/wu16 0) (b/wu16 height) (b/wu16 0))))
 
 (defn- mdhd [timescale duration]
   (fbox "mdhd" 0 0 (concat (b/wu32 0) (b/wu32 0) (b/wu32 timescale) (b/wu32 duration)
@@ -64,7 +71,7 @@
   (fbox "stss" 0 0 (concat (b/wu32 (count idxs)) (mapcat b/wu32 (sort idxs)))))
 
 (defn- trak [track chunk-offset]
-  (let [{:keys [track-id handler timescale samples stsd]} track
+  (let [{:keys [track-id handler timescale samples stsd width height]} track
         deltas    (mapv :duration samples)
         sizes     (mapv :size samples)
         duration  (reduce + 0 deltas)
@@ -77,7 +84,7 @@
         mh   (if (= handler "soun") smhd vmhd)
         minf (box "minf" (concat mh dinf stbl))
         mdia (box "mdia" (concat (mdhd timescale duration) (hdlr handler) minf))]
-    {:bytes (box "trak" (concat (tkhd track-id duration) mdia))
+    {:bytes (box "trak" (concat (tkhd track-id duration (or width 0) (or height 0)) mdia))
      :duration duration}))
 
 (def ^:private ftyp
@@ -224,6 +231,135 @@
                             :duration samples-per-frame
                             :keyframe true})
                   access-units)})
+
+;; --- AVC video sample entry (avc1 + avcC) -------------------------------
+;;
+;; The video counterpart of `aac-stsd` above, and the last thing between
+;; `kotoba-lang/org-iso-h264`'s encoder and an MP4 that carries its output
+;; (com-junkawasaki/root ADR-2800002800). Same two independent references:
+;; ffmpeg's own `avc1`/`avcC` in this repo's `av_sample.mp4` fixture, and a
+;; parser written separately from the writer.
+;;
+;; The part that is easy to get silently wrong is not the boxes — it is that MP4
+;; carries **length-prefixed** NAL units, not the Annex B start codes an encoder
+;; emits, and that the parameter sets live in `avcC` rather than in the samples.
+;; `avc-track` does both conversions; `annexb->sample` is separate so it can be
+;; tested on its own.
+
+(def ^:private nal-length-size
+  "Bytes of length prefix on each NAL unit inside a sample. 4 is what every real
+   muxer writes and what `avcC`'s `lengthSizeMinusOne` below declares."
+  4)
+
+(defn avcc
+  "`avcC` — AVCDecoderConfigurationRecord (ISO/IEC 14496-15 §5.2.4.1) — from the
+   SPS and PPS NAL units (each a byte vector INCLUDING its 1-byte NAL header,
+   excluding any start code).
+
+   Profile, compatibility and level are not parameters: they are read out of the
+   SPS itself (bytes 1..3), because a configuration record that disagreed with
+   the SPS it carries would be a decoder's problem to discover. No
+   profile-dependent extension is written — that trailer only exists for High
+   profiles (100/110/122/144), and `h264.sps/encode`'s Baseline output never
+   reaches them; a High-profile SPS would need it added, which is why this
+   throws rather than emitting a silently truncated record."
+  [{:keys [sps pps]}]
+  (when (or (empty? sps) (empty? pps))
+    (throw (ex-info "isobmff.mux/avcc: both an SPS and a PPS are required (a video track with no parameter sets is undecodable)"
+                     {:sps-bytes (count sps) :pps-bytes (count pps)})))
+  (when (< (count sps) 4)
+    (throw (ex-info "isobmff.mux/avcc: SPS is too short to read profile/level from"
+                     {:sps-bytes (count sps)})))
+  (let [profile (nth sps 1)]
+    (when (contains? #{100 110 122 144} profile)
+      (throw (ex-info "isobmff.mux/avcc: High-profile SPS needs the profile-dependent extension this writer does not emit"
+                       {:profile-idc profile})))
+    (box "avcC"
+         (concat (b/wu8 1)                              ; configurationVersion
+                 (b/wu8 profile)                        ; AVCProfileIndication
+                 (b/wu8 (nth sps 2))                    ; profile_compatibility
+                 (b/wu8 (nth sps 3))                    ; AVCLevelIndication
+                 ;; 6 reserved '1' bits + lengthSizeMinusOne
+                 (b/wu8 (bit-or 0xFC (dec nal-length-size)))
+                 ;; 3 reserved '1' bits + numOfSequenceParameterSets
+                 (b/wu8 (bit-or 0xE0 1))
+                 (b/wu16 (count sps)) (vec sps)
+                 (b/wu8 1)                              ; numOfPictureParameterSets
+                 (b/wu16 (count pps)) (vec pps)))))
+
+(def ^:private compressor-name
+  "`compressorname` — a 32-byte field holding a 1-byte length followed by that
+   many characters, zero-padded. ffmpeg writes its own encoder string here; this
+   writes the encoder that actually produced the samples."
+  (let [s "kotoba-lang/org-iso-h264"]
+    (concat (b/wu8 (count s)) (b/wstr s) (repeat (- 31 (count s)) 0))))
+
+(defn avc-stsd
+  "stsd holding one `avc1` VisualSampleEntry (ISO/IEC 14496-12 §12.1.3) with the
+   `avcC` above. `:width`/`:height` are the coded dimensions in pixels."
+  [{:keys [width height] :as opts}]
+  (when-not (and (pos? (or width 0)) (pos? (or height 0)))
+    (throw (ex-info "isobmff.mux/avc-stsd: width and height are required"
+                     {:width width :height height})))
+  (let [entry (box "avc1"
+                   (concat (repeat 6 0) (b/wu16 1)       ; SampleEntry
+                           (b/wu16 0) (b/wu16 0)         ; pre_defined, reserved
+                           (b/wu32 0) (b/wu32 0) (b/wu32 0) ; pre_defined[3]
+                           (b/wu16 width) (b/wu16 height)
+                           (b/wu32 0x00480000)           ; horizresolution, 72 dpi
+                           (b/wu32 0x00480000)           ; vertresolution, 72 dpi
+                           (b/wu32 0)                    ; reserved
+                           (b/wu16 1)                    ; frame_count
+                           compressor-name
+                           (b/wu16 0x0018)               ; depth, 24-bit colour
+                           (b/wu16 0xFFFF)               ; pre_defined = -1
+                           (avcc opts)))]
+    (fbox "stsd" 0 0 (concat (b/wu32 1) entry))))
+
+(defn annexb->sample
+  "Convert one access unit's Annex B NAL units into an MP4 sample: each NAL
+   prefixed with its 4-byte length, start codes removed, and the parameter sets
+   (SPS type 7, PPS type 8) DROPPED — in MP4 they belong to `avcC`, not to the
+   samples.
+
+   `nals` is a sequence of NAL byte vectors (each starting with its 1-byte NAL
+   header). Returns a byte vector, or nil when nothing codeable is left."
+  [nals]
+  (let [kept (remove (fn [nal]
+                       (contains? #{7 8} (bit-and (nth nal 0) 0x1f)))
+                     nals)]
+    (when (seq kept)
+      (vec (mapcat (fn [nal] (concat (b/wu32 (count nal)) nal)) kept)))))
+
+(defn avc-track
+  "A `mux`-shaped video track from `access-units` (each a sequence of Annex B
+   NAL byte vectors, e.g. grouped from `h264.bitstream/nal-units`), the SPS and
+   PPS to put in `avcC`, and the coded `:width`/`:height`.
+
+   `:sample-duration` is in `:timescale` units — the caller owns the frame rate,
+   since nothing in the bitstream states it. `:keyframes` is a predicate on the
+   access-unit INDEX; the default treats an access unit containing an IDR NAL
+   (type 5) as a sync sample, which is what makes `mux` emit a correct `stss`."
+  [{:keys [track-id access-units sps pps width height timescale sample-duration keyframes]
+    :or {track-id 1 timescale 90000 sample-duration 3000}}]
+  (let [idr? (fn [nals] (some (fn [nal] (= 5 (bit-and (nth nal 0) 0x1f))) nals))
+        samples (keep-indexed
+                  (fn [idx nals]
+                    (when-let [bytes (annexb->sample nals)]
+                      {:bytes bytes
+                       :size (count bytes)
+                       :duration sample-duration
+                       :keyframe (boolean (if keyframes (keyframes idx) (idr? nals)))}))
+                  access-units)]
+    (when (empty? samples)
+      (throw (ex-info "isobmff.mux/avc-track: no codeable access units (only parameter sets?)" {})))
+    {:track-id track-id
+     :handler "vide"
+     :timescale timescale
+     :width width
+     :height height
+     :stsd (avc-stsd {:sps sps :pps pps :width width :height height})
+     :samples (vec samples)}))
 
 (defn mux
   "demux structure {:timescale :tracks} → MP4 byte vector (ftyp + mdat +
