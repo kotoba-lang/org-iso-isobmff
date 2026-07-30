@@ -65,6 +65,20 @@ reads/writes the container structure; coded media stays an opaque blob for
 the caller (or a capability-gated native codec, per `kotoba-lang/utsushi`'s
 own design).
 
+**One exception, deliberately made:** `isobmff.mux/aac-stsd` BUILDS an
+`mp4a` + `esds` sample entry rather than passing one through. Opaque codec
+config is the right default for re-encode-free work, but it leaves no way to
+author a track from scratch — an MP4 has to declare its codec, and without
+that box `kotoba-lang/org-iso-aac` could encode AAC that ffmpeg decodes with
+still nowhere in an MP4 to say so (`com-junkawasaki/root` ADR-2800002800).
+`aac-track` turns that encoder's access units into a `mux`-shaped track. It
+is cross-validated against the `mp4a`/`esds` real ffmpeg wrote in this
+repo's own `av_sample.mp4`, and the resulting file is verified end to end:
+`ffprobe` reads `aac_mono.mp4` as `aac (LC) (mp4a)` and ffmpeg's decode of
+it is byte-identical to decoding the same access units as raw ADTS. It does
+NOT generalise — there is no equivalent for video yet, and codec config for
+everything else stays opaque.
+
 ## Usage
 
 ```clojure
@@ -74,6 +88,12 @@ own design).
 (meta/parse avif-bytes)                     ; => {:brand :width :height :boxes}
 (def d (demux/demux mp4-bytes))             ; => {:timescale :tracks [...]}
 (remux/remux (remux/trim d 0 5000))         ; re-encode-free trim → MP4 bytes
+
+;; author an AAC audio track from scratch (aac.encode's output, no ADTS headers)
+(def t (mux/aac-track {:access-units (:access-units enc)
+                       :sample-rate 44100 :channel-count 1
+                       :audio-specific-config (:audio-specific-config enc)}))
+(mux/mux {:timescale 44100 :tracks [t]})    ; => a playable MP4
 ```
 
 ## Test
