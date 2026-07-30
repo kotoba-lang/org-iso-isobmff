@@ -65,19 +65,30 @@ reads/writes the container structure; coded media stays an opaque blob for
 the caller (or a capability-gated native codec, per `kotoba-lang/utsushi`'s
 own design).
 
-**One exception, deliberately made:** `isobmff.mux/aac-stsd` BUILDS an
-`mp4a` + `esds` sample entry rather than passing one through. Opaque codec
-config is the right default for re-encode-free work, but it leaves no way to
-author a track from scratch — an MP4 has to declare its codec, and without
-that box `kotoba-lang/org-iso-aac` could encode AAC that ffmpeg decodes with
-still nowhere in an MP4 to say so (`com-junkawasaki/root` ADR-2800002800).
-`aac-track` turns that encoder's access units into a `mux`-shaped track. It
-is cross-validated against the `mp4a`/`esds` real ffmpeg wrote in this
-repo's own `av_sample.mp4`, and the resulting file is verified end to end:
-`ffprobe` reads `aac_mono.mp4` as `aac (LC) (mp4a)` and ffmpeg's decode of
-it is byte-identical to decoding the same access units as raw ADTS. It does
-NOT generalise — there is no equivalent for video yet, and codec config for
-everything else stays opaque.
+**Two exceptions, deliberately made:** `isobmff.mux/aac-stsd` and
+`avc-stsd` BUILD an `mp4a` + `esds` / `avc1` + `avcC` sample entry rather
+than passing one through. Opaque codec config is the right default for
+re-encode-free work, but it leaves no way to author a track from scratch —
+an MP4 has to declare its codec, and without those boxes
+`kotoba-lang/org-iso-aac` and `org-iso-h264` could encode streams ffmpeg
+decodes with still nowhere in an MP4 to say so (`com-junkawasaki/root`
+ADR-2800002800). `aac-track`/`avc-track` turn those encoders' access units
+into `mux`-shaped tracks.
+
+Both are cross-validated against the boxes real ffmpeg wrote in this repo's
+own `av_sample.mp4` — for `avcC`, given ffmpeg's own parameter sets this
+writer produces ffmpeg's exact BYTES — and both resulting files are verified
+end to end: `ffprobe` reads `aac_mono.mp4` as `aac (LC) (mp4a)` and
+`avc_video.mp4` as `h264 (Baseline) (avc1), 128x96, 30 fps`, and in each case
+ffmpeg's decode is byte-identical to decoding the same access units outside
+the container, so the container contributes no error.
+
+For video the fiddly part is not the boxes: **MP4 carries length-prefixed
+NAL units, not Annex B start codes, and the parameter sets belong to `avcC`
+rather than to the samples.** A muxer that copied Annex B into `mdat`
+produces a file that parses, reports the right codec and resolution, and
+decodes to nothing. `annexb->sample` does that conversion and is tested on
+its own. Codec config for every OTHER format stays opaque.
 
 ## Usage
 
@@ -94,6 +105,13 @@ everything else stays opaque.
                        :sample-rate 44100 :channel-count 1
                        :audio-specific-config (:audio-specific-config enc)}))
 (mux/mux {:timescale 44100 :tracks [t]})    ; => a playable MP4
+
+;; author an H.264 video track (Annex B NALs per access unit; SPS/PPS go in avcC)
+(def v (mux/avc-track {:access-units [[idr-nal] [p-nal] ...]
+                       :sps sps-nal :pps pps-nal
+                       :width 1280 :height 720
+                       :timescale 30000 :sample-duration 1000}))
+(mux/mux {:timescale 30000 :tracks [v]})
 ```
 
 ## Test
