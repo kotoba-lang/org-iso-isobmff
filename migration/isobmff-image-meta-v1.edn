@@ -1,9 +1,9 @@
 {:schema "kotoba-isobmff-image-meta-migration/v1"
  :profile :isobmff/bounded-image-meta-v1
  :legacy
- {:parser "src/isobmff/meta.cljc"
-  :boxes "src/isobmff/box.cljc"
-  :bytes "src/isobmff/bytes.cljc"
+ {:parser "src/isobmff/meta.cljk"
+  :boxes "src/isobmff/box.cljk"
+  :bytes "src/isobmff/bytes.cljk"
   :status :retained-open-recursive-oracle}
  :canonical
  {:nested-box-parser "src/isobmff/bounded_nested.kotoba"
