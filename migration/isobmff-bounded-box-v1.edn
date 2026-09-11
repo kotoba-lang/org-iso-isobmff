@@ -1,7 +1,7 @@
 {:schema "kotoba-isobmff-migration/v1"
  :profile :isobmff/bounded-top-level-box-v1
- :legacy {:bytes "src/isobmff/bytes.cljc"
-          :boxes "src/isobmff/box.cljc"
+ :legacy {:bytes "src/isobmff/bytes.cljk"
+          :boxes "src/isobmff/box.cljk"
           :status :retained-full-tree-and-media-oracle}
  :canonical {:parser "src/isobmff/bounded_box.kotoba"
              :conformance "test/isobmff/bounded_box_conformance.kotoba"

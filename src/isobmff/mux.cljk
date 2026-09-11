@@ -110,7 +110,7 @@
 ;; (com-junkawasaki/root ADR-2800002800).
 ;;
 ;; Cross-validated against the `mp4a`/`esds` that real ffmpeg wrote in this
-;; repo's own `av_sample.mp4` fixture — see `test/isobmff/aac_stsd_test.clj`,
+;; repo's own `av_sample.mp4` fixture — see `test/isobmff/aac_stsd_test.cljk`,
 ;; including the one place the two deliberately differ (ffmpeg appends the
 ;; optional 0x2B7 sync extension to spell out `no SBR`; this writer leaves
 ;; that implicit, which is what a plain AAC-LC AudioSpecificConfig means).
