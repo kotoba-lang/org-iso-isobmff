@@ -117,5 +117,5 @@ its own. Codec config for every OTHER format stays opaque.
 ## Test
 
 ```sh
-clojure -M:test
+kbb -M:test
 ```
