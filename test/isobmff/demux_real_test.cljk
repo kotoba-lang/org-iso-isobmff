@@ -6,7 +6,7 @@
    external file ever exercised the real box tree ffmpeg actually writes).
    Ground truth confirmed via `ffprobe -show_entries stream=...`."
   (:require [clojure.test :refer [deftest is testing]]
-            [clojure.java.io :as io]
+            #?(:clj [clojure.java.io :as io])
             [isobmff.demux :as demux]))
 
 (defn- rd-bytes [p]

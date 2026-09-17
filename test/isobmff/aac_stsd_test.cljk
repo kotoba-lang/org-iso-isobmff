@@ -40,7 +40,7 @@
    is a fixture rather than a test step (see `com-junkawasaki/root`
    ADR-2800002800)."
   (:require [clojure.test :refer [deftest is testing]]
-            [clojure.java.io :as io]
+            #?(:clj [clojure.java.io :as io])
             [isobmff.box :as box]
             [isobmff.bytes :as b]
             [isobmff.demux :as demux]

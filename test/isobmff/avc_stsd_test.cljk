@@ -38,7 +38,7 @@
    Both are optional and this writer omits them; the test asserts ffmpeg has them
    so that difference stays a known one."
   (:require [clojure.test :refer [deftest is testing]]
-            [clojure.java.io :as io]
+            #?(:clj [clojure.java.io :as io])
             [isobmff.box :as box]
             [isobmff.bytes :as b]
             [isobmff.demux :as demux]
