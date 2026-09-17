@@ -10,7 +10,7 @@
    (bit-and (bit-shift-right n 8) 0xff)
    (bit-and n 0xff)])
 
-(defn- ascii [s] (mapv int s))
+(defn- ascii [s] (mapv #?(:clj int :cljs #(.charCodeAt % 0)) s))
 
 (defn- mk-box [type payload]
   (let [size (+ 8 (count payload))]

@@ -10,7 +10,9 @@
             [isobmff.demux :as demux]))
 
 (defn- rd-bytes [p]
-  (mapv #(bit-and (int %) 0xff) (with-open [in (io/input-stream (io/resource p))] (.readAllBytes in))))
+  (mapv #(bit-and (int %) 0xff)
+        #?(:clj (with-open [in (io/input-stream (io/resource p))] (.readAllBytes in))
+           :cljs (js->clj (.readFileSync (js/require "fs") (str "resources/" p))))))
 
 (deftest real-ffmpeg-av-demux
   (let [d (demux/demux (rd-bytes "isobmff/fixtures/av_sample.mp4"))

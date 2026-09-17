@@ -65,7 +65,9 @@
             [isobmff.blob :as blob]))
 
 (defn- rd-bytes [p]
-  (mapv #(bit-and (int %) 0xff) (with-open [in (io/input-stream (io/resource p))] (.readAllBytes in))))
+  (mapv #(bit-and (int %) 0xff)
+        #?(:clj (with-open [in (io/input-stream (io/resource p))] (.readAllBytes in))
+           :cljs (js->clj (.readFileSync (js/require "fs") (str "resources/" p))))))
 
 (defn- video-track [demuxed] (first (:tracks demuxed)))
 
