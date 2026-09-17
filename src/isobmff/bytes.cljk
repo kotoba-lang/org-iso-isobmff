@@ -36,4 +36,4 @@
                 (bit-and (bit-shift-right n 16) 0xff)
                 (bit-and (bit-shift-right n 8) 0xff)
                 (bit-and n 0xff)])
-(defn wstr [s] (mapv int s))
+(defn wstr [s] (mapv #?(:clj int :cljs #(.charCodeAt (str %) 0)) s))
