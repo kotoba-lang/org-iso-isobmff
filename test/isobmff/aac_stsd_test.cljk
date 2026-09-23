@@ -39,7 +39,7 @@
    Regenerating it needs org-iso-aac, which this repo does not depend on, so it
    is a fixture rather than a test step (see `com-junkawasaki/root`
    ADR-2800002800)."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             #?(:clj [clojure.java.io :as io])
             [isobmff.box :as box]
             [isobmff.bytes :as b]

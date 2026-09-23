@@ -58,7 +58,7 @@
    to ffmpeg's own keyframe sample modulo exactly that one well-defined
    36-byte inline-parameter-set insertion (checked structurally, not
    assumed)."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             #?(:clj [clojure.java.io :as io])
             [isobmff.demux :as demux]
             [isobmff.remux :as remux]

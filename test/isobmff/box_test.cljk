@@ -1,7 +1,7 @@
 (ns isobmff.box-test
   "isobmff.box smoke test: synthetic boxes verify tree structure and
    boundaries (ported from utsushi.container-test)."
-  (:require [clojure.test :refer [deftest is]]
+  (:require [kotoba.test :refer [deftest is]]
             [isobmff.box :as box]))
 
 (defn- be32 [n]
