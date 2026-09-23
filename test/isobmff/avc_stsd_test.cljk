@@ -37,7 +37,7 @@
    ffmpeg additionally writes `pasp` and `btrt` boxes inside its sample entry.
    Both are optional and this writer omits them; the test asserts ffmpeg has them
    so that difference stays a known one."
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             #?(:clj [clojure.java.io :as io])
             [isobmff.box :as box]
             [isobmff.bytes :as b]

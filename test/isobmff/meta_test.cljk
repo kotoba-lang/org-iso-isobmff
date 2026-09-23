@@ -4,7 +4,7 @@
    isobmff-avif case — this is the test that exercises the meta FullBox
    version+flags-skip fix (isobmff.box's unification of kasane.isobmff and
    utsushi.container)."
-  (:require [clojure.test :refer [deftest is]]
+  (:require [kotoba.test :refer [deftest is]]
             [isobmff.meta :as meta]))
 
 (defn- u32 [n] [(bit-and (bit-shift-right n 24) 0xff) (bit-and (bit-shift-right n 16) 0xff)

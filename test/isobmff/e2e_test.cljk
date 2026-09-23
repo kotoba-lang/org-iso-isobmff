@@ -5,7 +5,7 @@
    needed (mux and demux cross-validate each other).
 
    Ported from kotoba-lang/utsushi (utsushi.e2e-test, ADR-2606272200)."
-  (:require [clojure.test :refer [deftest is]]
+  (:require [kotoba.test :refer [deftest is]]
             [isobmff.mux :as mux]
             [isobmff.demux :as demux]
             [isobmff.blob :as blob]
