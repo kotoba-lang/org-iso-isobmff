@@ -40,7 +40,7 @@
    is a fixture rather than a test step (see `com-junkawasaki/root`
    ADR-2800002800)."
   (:require [kotoba.test :refer [deftest is testing]]
-            #?(:clj [clojure.java.io :as io])
+            #?(:clj [kotoba.io :as io])
             [isobmff.box :as box]
             [isobmff.bytes :as b]
             [isobmff.demux :as demux]
@@ -200,11 +200,11 @@
 
 (deftest esds-refuses-to-omit-the-codec-config
   (testing "an AAC track with no DecoderSpecificInfo is undecodable, so it fails instead of being written"
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) (mux/esds {})))
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) (mux/esds {:audio-specific-config []})))
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+    (is (thrown? js/Error (mux/esds {})))
+    (is (thrown? js/Error (mux/esds {:audio-specific-config []})))
+    (is (thrown? js/Error
                  (mux/aac-stsd {:sample-rate 44100 :audio-specific-config [0x12 0x08]})))
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+    (is (thrown? js/Error
                  (mux/aac-stsd {:channel-count 1 :audio-specific-config [0x12 0x08]})))))
 
 (deftest esds-carries-optional-rate-fields-when-given
