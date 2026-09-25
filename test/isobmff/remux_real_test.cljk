@@ -59,7 +59,7 @@
    36-byte inline-parameter-set insertion (checked structurally, not
    assumed)."
   (:require [kotoba.test :refer [deftest is testing]]
-            #?(:clj [clojure.java.io :as io])
+            #?(:clj [kotoba.io :as io])
             [isobmff.demux :as demux]
             [isobmff.remux :as remux]
             [isobmff.blob :as blob]))

@@ -38,7 +38,7 @@
    Both are optional and this writer omits them; the test asserts ffmpeg has them
    so that difference stays a known one."
   (:require [kotoba.test :refer [deftest is testing]]
-            #?(:clj [clojure.java.io :as io])
+            #?(:clj [kotoba.io :as io])
             [isobmff.box :as box]
             [isobmff.bytes :as b]
             [isobmff.demux :as demux]
@@ -139,12 +139,12 @@
       (is (= sps (:sps parsed)))))
   (testing "a High-profile SPS needs an extension this writer does not emit, so it refuses rather than truncating"
     (doseq [high [100 110 122 144]]
-      (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+      (is (thrown? js/Error
                    (mux/avcc {:sps [0x67 high 0 30] :pps [0x68 1]})))))
   (testing "and parameter sets are not optional"
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) (mux/avcc {:sps [0x67 66 0 30]})))
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) (mux/avcc {:pps [0x68 1]})))
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error) (mux/avcc {:sps [0x67 66] :pps [0x68 1]}))
+    (is (thrown? js/Error (mux/avcc {:sps [0x67 66 0 30]})))
+    (is (thrown? js/Error (mux/avcc {:pps [0x68 1]})))
+    (is (thrown? js/Error (mux/avcc {:sps [0x67 66] :pps [0x68 1]}))
         "an SPS too short to read profile/level from")))
 
 (deftest matches-the-avc1-fields-ffmpeg-writes
@@ -173,9 +173,9 @@
       (is (contains? theirs "btrt"))
       (is (= #{"avcC"} ours))))
   (testing "dimensions are required — a 0x0 video track gives a player nothing to size the picture from"
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+    (is (thrown? js/Error
                  (mux/avc-stsd {:height 48 :sps [0x67 66 0 30] :pps [0x68 1]})))
-    (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+    (is (thrown? js/Error
                  (mux/avc-stsd {:width 64 :sps [0x67 66 0 30] :pps [0x68 1]})))))
 
 ;; --- samples: the part that silently produces an undecodable file --------
@@ -224,7 +224,7 @@
       (is (= 32 (:width t)))
       (is (= 16 (:height t))))
     (testing "an input with no codeable access units fails rather than producing an empty track"
-      (is (thrown? #?(:clj clojure.lang.ExceptionInfo :cljs js/Error)
+      (is (thrown? js/Error
                    (mux/avc-track {:access-units [[sps pps]] :sps sps :pps pps
                                    :width 32 :height 16}))))))
 
